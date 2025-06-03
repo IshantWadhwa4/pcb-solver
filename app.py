@@ -4,6 +4,7 @@ from gtts import gTTS
 from io import BytesIO
 from PIL import Image
 import base64
+import requests
 
 st.title("PCM Problem Solver with Groq API and gTTS")
 
@@ -41,9 +42,8 @@ def call_groq_api_stream(prompt, model, api_key):
     return result
 
 # Helper: Extract text from image using Groq API OCR model
-def extract_text_from_image(image_bytes, api_key):
+def extract_text_from_image(file_url, api_key):
     client = Groq(api_key=api_key)
-    img_b64 = base64.b64encode(image_bytes).decode("utf-8")
     ocr_instruction = (
         "You are an OCR expert.\n"
         "You will be given an image and you need to extract the text from it. "
@@ -52,12 +52,12 @@ def extract_text_from_image(image_bytes, api_key):
         "You will be given a question and you need to solve it step by step.\n"
         "Answer in a mix of English and Hindi as if you are an Indian teacher explaining to a student.\n"
     )
-    prompt = f"Extract the text from this image (base64-encoded): "
-    full_prompt = ocr_instruction + prompt
+    
+    full_prompt = ocr_instruction 
     completion = client.chat.completions.create(
         model="meta-llama/llama-4-maverick-17b-128e-instruct",
         messages=[{"role": "user", "content": full_prompt,
-                   "type": "image_url", "image_url": f"data:image/jpeg;base64,{img_b64}"}],
+                   "type": "image_url", "image_url": file_url}],
         temperature=1,
         max_completion_tokens=1024,
         top_p=1,
@@ -77,13 +77,22 @@ if st.button("Solve Problem"):
     else:
         input_to_solve = problem_text.strip() if problem_text else ""
         if uploaded_image is not None:
-            image_bytes = uploaded_image.read()
-            extracted_text = extract_text_from_image(image_bytes, groq_api_key)
-            if extracted_text:
-                if input_to_solve:
-                    input_to_solve += "\n" + extracted_text
+            files = {'file': (uploaded_image.name, uploaded_image, uploaded_image.type)}
+            response = requests.post("https://file.io", files=files)
+
+            if response.status_code == 200:
+                result = response.json()
+                if result.get("success"):
+                    file_url = result.get("link")
+                    st.success("✅ Upload successful!")
+                    st.markdown(f"[Click here to view/download the image]({file_url})")
                 else:
-                    input_to_solve = extracted_text
+                    st.error("❌ Upload failed.")
+            else:
+                st.error(f"❌ Error: {response.status_code} - {response.text}")
+
+            solve_text = extract_text_from_image(file_url, groq_api_key)
+            
         if input_to_solve:
             solve_text = call_groq_api_stream(input_to_solve, "llama3-8b-8192", groq_api_key)
         else:
