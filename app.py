@@ -5,6 +5,7 @@ from io import BytesIO
 from PIL import Image
 import base64
 import requests
+import pytesseract
 
 st.title("PCM Problem Solver with Groq API and gTTS")
 
@@ -41,33 +42,15 @@ def call_groq_api_stream(prompt, model, api_key):
         result += chunk.choices[0].delta.content or ""
     return result
 
-# Helper: Extract text from image using Groq API OCR model
-def extract_text_from_image(file_url, api_key):
-    client = Groq(api_key=api_key)
-    ocr_instruction = (
-        "You are an OCR expert.\n"
-        "You will be given an image and you need to extract the text from it. "
-        "Text may contain maths equations, so you need to give exact text we use in maths equations.\n"
-        f"You are a {task} expert.\n"
-        "You will be given a question and you need to solve it step by step.\n"
-        "Answer in a mix of English and Hindi as if you are an Indian teacher explaining to a student.\n"
-    )
-    
-    full_prompt = ocr_instruction 
-    completion = client.chat.completions.create(
-        model="meta-llama/llama-4-maverick-17b-128e-instruct",
-        messages=[{"role": "user", "content": full_prompt,
-                   "type": "image_url", "image_url": file_url}],
-        temperature=1,
-        max_completion_tokens=1024,
-        top_p=1,
-        stream=True,
-        stop=None,
-    )
-    result = ""
-    for chunk in completion:
-        result += chunk.choices[0].delta.content or ""
-    return result
+# Helper: Extract text from image using Tesseract OCR
+def extract_text_from_image_with_tesseract(uploaded_image):
+    try:
+        image = Image.open(uploaded_image)
+        text = pytesseract.image_to_string(image)
+        return text.strip()
+    except Exception as e:
+        st.error(f"OCR failed: {e}")
+        return ""
 
 # Main logic
 solve_text = None
@@ -77,26 +60,14 @@ if st.button("Solve Problem"):
     else:
         input_to_solve = problem_text.strip() if problem_text else ""
         if uploaded_image is not None:
-            files = {'file': (uploaded_image.name, uploaded_image, uploaded_image.type)}
-            response = requests.post("https://file.io", files=files)
-            print("response is:",response)
-
-            if response.status_code == 200:
-                print("response is:",response.status_code)
-                result = response.json()
-                if result.get("success"):
-                    file_url = result.get("link")
-                    st.success("✅ Upload successful!")
-                    st.markdown(f"[Click here to view/download the image]({file_url})")
+            extracted_text = extract_text_from_image_with_tesseract(uploaded_image)
+            if extracted_text:
+                if input_to_solve:
+                    input_to_solve += "\n" + extracted_text
                 else:
-                    st.error("❌ Upload failed.")
-            else:
-                st.error(f"❌ Error: {response.status_code} - {response.text}")
-
-            solve_text = extract_text_from_image(file_url, groq_api_key)
-            
+                    input_to_solve = extracted_text
         if input_to_solve:
-            solve_text = call_groq_api_stream(input_to_solve, "llama3-8b-8192", groq_api_key)
+            solve_text = call_groq_api_stream(input_to_solve, "meta-llama/llama-prompt-guard-2-86m", groq_api_key)
         else:
             st.warning("Please provide a problem in text or upload an image.")
 
