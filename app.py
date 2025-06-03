@@ -43,17 +43,21 @@ def call_groq_api_stream(prompt, model, api_key):
 # Helper: Extract text from image using Groq API OCR model
 def extract_text_from_image(image_bytes, api_key):
     client = Groq(api_key=api_key)
-    img_b64 = base64.b64encode(image_bytes).decode()
+    img_b64 = base64.b64encode(image_bytes).decode("utf-8")
     ocr_instruction = (
         "You are an OCR expert.\n"
         "You will be given an image and you need to extract the text from it. "
         "Text may contain maths equations, so you need to give exact text we use in maths equations.\n"
+        f"You are a {task} expert.\n"
+        "You will be given a question and you need to solve it step by step.\n"
+        "Answer in a mix of English and Hindi as if you are an Indian teacher explaining to a student.\n"
     )
-    prompt = f"Extract the text from this image (base64-encoded): {img_b64}"
+    prompt = f"Extract the text from this image (base64-encoded): "
     full_prompt = ocr_instruction + prompt
     completion = client.chat.completions.create(
         model="meta-llama/llama-4-maverick-17b-128e-instruct",
-        messages=[{"role": "user", "content": full_prompt}],
+        messages=[{"role": "user", "content": full_prompt,
+                   "type": "image_url", "image_url": f"data:image/jpeg;base64,{img_b64}"}],
         temperature=1,
         max_completion_tokens=1024,
         top_p=1,
