@@ -44,7 +44,7 @@ def call_groq_api_stream(prompt, model, api_key):
 
 @st.cache_resource
 def load_trocr_model():
-    processor = TrOCRProcessor.from_pretrained("microsoft/trocr-base-handwritten")
+    processor = TrOCRProcessor.from_pretrained("microsoft/trocr-base-handwritten", use_fast=False)
     model = VisionEncoderDecoderModel.from_pretrained("microsoft/trocr-base-handwritten")
     return processor, model
 
@@ -65,6 +65,7 @@ if st.button("Solve Problem"):
         input_to_solve = problem_text.strip() if problem_text else ""
         if uploaded_image is not None:
             extracted_text = ocr_image_with_trocr(uploaded_image)
+            st.write(extracted_text)
             if extracted_text:
                 if input_to_solve:
                     input_to_solve += "\n" + extracted_text
