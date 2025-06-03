@@ -30,7 +30,7 @@ def call_groq_api_stream(prompt, model, api_key):
         model=model,
         messages=[{"role": "user", "content": full_prompt}],
         temperature=1,
-        max_completion_tokens=1024,
+        max_completion_tokens=512,
         top_p=1,
         stream=True,
         stop=None,
