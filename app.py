@@ -79,8 +79,10 @@ if st.button("Solve Problem"):
         if uploaded_image is not None:
             files = {'file': (uploaded_image.name, uploaded_image, uploaded_image.type)}
             response = requests.post("https://file.io", files=files)
+            print(response)
 
             if response.status_code == 200:
+                print(response)
                 result = response.json()
                 if result.get("success"):
                     file_url = result.get("link")
