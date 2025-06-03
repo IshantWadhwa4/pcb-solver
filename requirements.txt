@@ -3,7 +3,3 @@ gtts
 requests
 Pillow
 groq
-pytesseract
-transformers
-torch>=2.0.0
-torchvision
