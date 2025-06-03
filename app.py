@@ -3,9 +3,7 @@ from groq import Groq
 from gtts import gTTS
 from io import BytesIO
 from PIL import Image
-import base64
 import requests
-from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
 st.title("PCM Problem Solver with Groq API and gTTS")
 
@@ -42,19 +40,23 @@ def call_groq_api_stream(prompt, model, api_key):
         result += chunk.choices[0].delta.content or ""
     return result
 
-@st.cache_resource
-def load_trocr_model():
-    processor = TrOCRProcessor.from_pretrained("microsoft/trocr-base-handwritten", use_fast=False)
-    model = VisionEncoderDecoderModel.from_pretrained("microsoft/trocr-base-handwritten")
-    return processor, model
-
-def ocr_image_with_trocr(uploaded_image):
-    processor, model = load_trocr_model()
-    image = Image.open(uploaded_image).convert("RGB")
-    pixel_values = processor(images=image, return_tensors="pt").pixel_values
-    generated_ids = model.generate(pixel_values)
-    generated_text = processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
-    return generated_text.strip()
+# Helper: OCR.Space API for OCR
+def ocr_space_file_upload(image_file, api_key='K88884750088957'):
+    payload = {
+        'isOverlayRequired': False,
+        'apikey': api_key,
+        'language': 'eng',
+    }
+    files = {'file': image_file}
+    r = requests.post('https://api.ocr.space/parse/image',
+                      files=files,
+                      data=payload,
+                      )
+    result = r.json()
+    try:
+        return result['ParsedResults'][0]['ParsedText']
+    except Exception:
+        return ""
 
 # Main logic
 solve_text = None
@@ -64,7 +66,7 @@ if st.button("Solve Problem"):
     else:
         input_to_solve = problem_text.strip() if problem_text else ""
         if uploaded_image is not None:
-            extracted_text = ocr_image_with_trocr(uploaded_image)
+            extracted_text = ocr_space_file_upload(uploaded_image)
             st.write(extracted_text)
             if extracted_text:
                 if input_to_solve:
