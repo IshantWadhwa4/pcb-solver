@@ -74,7 +74,7 @@ if st.button("Solve Problem"):
                 else:
                     input_to_solve = extracted_text
         if input_to_solve:
-            solve_text = call_groq_api_stream(input_to_solve, "meta-llama/llama-prompt-guard-2-86m", groq_api_key)
+            solve_text = call_groq_api_stream(input_to_solve, "llama3-8b-8192", groq_api_key)
         else:
             st.warning("Please provide a problem in text or upload an image.")
 
