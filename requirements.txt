@@ -3,4 +3,6 @@ gtts
 requests
 Pillow
 groq
-pytesseract 
+pytesseract
+transformers
+torch 
