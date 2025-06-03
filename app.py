@@ -5,7 +5,7 @@ from io import BytesIO
 from PIL import Image
 import base64
 import requests
-import pytesseract
+from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
 st.title("PCM Problem Solver with Groq API and gTTS")
 
@@ -42,15 +42,19 @@ def call_groq_api_stream(prompt, model, api_key):
         result += chunk.choices[0].delta.content or ""
     return result
 
-# Helper: Extract text from image using Tesseract OCR
-def extract_text_from_image_with_tesseract(uploaded_image):
-    try:
-        image = Image.open(uploaded_image)
-        text = pytesseract.image_to_string(image)
-        return text.strip()
-    except Exception as e:
-        st.error(f"OCR failed: {e}")
-        return ""
+@st.cache_resource
+def load_trocr_model():
+    processor = TrOCRProcessor.from_pretrained("microsoft/trocr-base-handwritten")
+    model = VisionEncoderDecoderModel.from_pretrained("microsoft/trocr-base-handwritten")
+    return processor, model
+
+def ocr_image_with_trocr(uploaded_image):
+    processor, model = load_trocr_model()
+    image = Image.open(uploaded_image).convert("RGB")
+    pixel_values = processor(images=image, return_tensors="pt").pixel_values
+    generated_ids = model.generate(pixel_values)
+    generated_text = processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+    return generated_text.strip()
 
 # Main logic
 solve_text = None
@@ -60,7 +64,7 @@ if st.button("Solve Problem"):
     else:
         input_to_solve = problem_text.strip() if problem_text else ""
         if uploaded_image is not None:
-            extracted_text = extract_text_from_image_with_tesseract(uploaded_image)
+            extracted_text = ocr_image_with_trocr(uploaded_image)
             if extracted_text:
                 if input_to_solve:
                     input_to_solve += "\n" + extracted_text
