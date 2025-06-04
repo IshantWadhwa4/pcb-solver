@@ -25,6 +25,7 @@ def call_groq_api_stream(prompt, model, api_key):
         f"You are a {task} expert.\n"
         "You will be given a question and you need to solve it step by step.\n"
         "Answer in a mix of English and Hindi as if you are an Indian teacher explaining to a student.\n"
+        "Limit your response to 500 tokens only follow the instructions strictly."
     )
     full_prompt = expert_instruction + (prompt or "")
     completion = client.chat.completions.create(
@@ -93,6 +94,7 @@ if solve_text:
     audio_fp = BytesIO()
     tts.write_to_fp(audio_fp)
     audio_fp.seek(0)
-    st.audio(audio_fp, format='audio/mp3')
     st.markdown(get_audio_download_link(audio_fp), unsafe_allow_html=True)
     st.caption("If audio does not play, use the download link above (especially on iOS).") 
+    st.audio(audio_fp, format='audio/mp3')
+    
