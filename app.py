@@ -25,7 +25,7 @@ def call_groq_api_stream(prompt, model, api_key):
         f"You are a {task} expert.\n"
         "You will be given a question and you need to solve it step by step.\n"
         "Answer in a mix of English and Hindi as if you are an Indian teacher explaining to a student.\n"
-        "Limit your response to 500 tokens only follow the instructions strictly."
+        "try to give your answer in 500 tokens only"
     )
     full_prompt = expert_instruction + (prompt or "")
     completion = client.chat.completions.create(
