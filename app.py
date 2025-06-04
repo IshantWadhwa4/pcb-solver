@@ -4,6 +4,7 @@ from gtts import gTTS
 from io import BytesIO
 from PIL import Image
 import requests
+import base64
 
 st.title("PCM Problem Solver with Groq API and gTTS")
 
@@ -58,6 +59,12 @@ def ocr_space_file_upload(image_file, api_key='K88884750088957'):
     except Exception:
         return ""
 
+def get_audio_download_link(audio_fp, filename="solution.mp3"):
+    audio_fp.seek(0)
+    b64 = base64.b64encode(audio_fp.read()).decode()
+    href = f'<a href="data:audio/mp3;base64,{b64}" download="{filename}">Download audio</a>'
+    return href
+
 # Main logic
 solve_text = None
 if st.button("Solve Problem"):
@@ -87,4 +94,5 @@ if solve_text:
     tts.write_to_fp(audio_fp)
     audio_fp.seek(0)
     st.audio(audio_fp, format='audio/mp3')
-    st.caption("Click play to listen to the solution.") 
+    st.markdown(get_audio_download_link(audio_fp), unsafe_allow_html=True)
+    st.caption("If audio does not play, use the download link above (especially on iOS).") 
